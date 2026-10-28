@@ -1,0 +1,27 @@
+version: 0.2
+
+env:
+  variables:
+    CODEARTIFACT_DOMAIN: nextwork
+    CODEARTIFACT_REPO: nextwork-devops-cicd
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+  pre_build:
+    commands:
+      - export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain $CODEARTIFACT_DOMAIN --domain-owner $ACCOUNT_ID --region $AWS_DEFAULT_REGION --query authorizationToken --output text)
+      - export CODEARTIFACT_REPO_URL=$(aws codeartifact get-repository-endpoint --domain $CODEARTIFACT_DOMAIN --domain-owner $ACCOUNT_ID --repository $CODEARTIFACT_REPO --format maven --region $AWS_DEFAULT_REGION --query repositoryEndpoint --output text)
+  build:
+    commands:
+      - mvn -s settings.xml clean package
+  post_build:
+    commands:
+      - echo "Build finished on $(date)"
+
+artifacts:
+  files:
+    - target/nextwork-web-project.war
+  discard-paths: yes
